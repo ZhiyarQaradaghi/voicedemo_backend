@@ -15,10 +15,18 @@ const io = new Server(server, {
   cors: {
     origin: process.env.CLIENT_URL || "http://localhost:3000",
     methods: ["GET", "POST"],
+    credentials: true,
   },
 });
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || "http://localhost:3000",
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
 mongoose
@@ -69,7 +77,7 @@ io.on("connection", (socket) => {
   socket.on("voice-data", (data) => {
     const { channelId, audioChunk } = data;
 
-    if (rooms[channelId]?.currentSpeaker?.id === socket.id) {      
+    if (rooms[channelId]?.currentSpeaker?.id === socket.id) {
       socket.to(channelId).emit("receive-voice-data", {
         userId: socket.id,
         audioChunk,
@@ -118,7 +126,7 @@ io.on("connection", (socket) => {
         io.to(channelId).emit("queue-updated", {
           queue: rooms[channelId].speakingQueue,
         });
-        
+
         io.to(channelId).emit("hand-raised", { userId: socket.id });
 
         if (!rooms[channelId].currentSpeaker) {
@@ -267,7 +275,7 @@ io.on("connection", (socket) => {
       socket.leave(channelId);
     }
   });
-  
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
     Object.keys(rooms).forEach((channelId) => {
